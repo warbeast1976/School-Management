@@ -95,13 +95,13 @@ function bindEvents(container) {
       if (!subject) return;
       const ok = await confirmDialog({
         title: 'Delete subject',
-        message: \`Remove \${subject.name} (\${subject.code})? This cannot be undone.\`,
+        message: `Remove ${subject.name} (${subject.code})? This cannot be undone.`,
         confirmLabel: 'Delete',
         danger: true,
       });
       if (!ok) return;
       try {
-        await apiRequest(\`/subjects/\${subject.id}\`, { method: 'DELETE' });
+        await apiRequest(`/subjects/${subject.id}`, { method: 'DELETE' });
         toast('Subject removed successfully.', 'success');
         loadSubjects(container);
       } catch (err) {
@@ -118,25 +118,25 @@ function showSubjectForm(subject = null) {
     { value: '0', label: 'Inactive', selected: subject ? !subject.is_active : false },
   ];
 
-  const body = \`
+  const body = `
     <p id="form-error" class="hidden alert-error mb-4" role="alert"><span></span></p>
     <form id="subject-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      \${formField('Subject Code', 'code', { value: subject?.code, required: true, placeholder: 'e.g. MATH101' })}
-      \${formField('Subject Name', 'name', { value: subject?.name, required: true, placeholder: 'e.g. Calculus I' })}
-      \${formField('Units', 'units', { type: 'number', value: subject?.units || 3, required: true })}
-      \${formField('Status', 'is_active', { type: 'select', required: true, options: statusOpts })}
+      ${formField('Subject Code', 'code', { value: subject?.code, required: true, placeholder: 'e.g. MATH101' })}
+      ${formField('Subject Name', 'name', { value: subject?.name, required: true, placeholder: 'e.g. Calculus I' })}
+      ${formField('Units', 'units', { type: 'number', value: subject?.units || 3, required: true })}
+      ${formField('Status', 'is_active', { type: 'select', required: true, options: statusOpts })}
       <div class="sm:col-span-2">
         <label for="description" class="label-field">Description</label>
-        <textarea id="description" name="description" class="\${inputCls} min-h-[80px]" placeholder="Brief course description">\${escapeHtml(subject?.description || '')}</textarea>
+        <textarea id="description" name="description" class="${inputCls} min-h-[80px]" placeholder="Brief course description">${escapeHtml(subject?.description || '')}</textarea>
       </div>
-    </form>\`;
+    </form>`;
 
   openModal(
     modalShell(
       isEdit ? 'Edit subject' : 'Add subject',
       isEdit ? 'Update curriculum details.' : 'Create a new subject in the curriculum.',
       body,
-      \`\${btnSecondary('Cancel', 'data-modal-close type="button"')}<button type="submit" form="subject-form" class="btn btn-primary">\${isEdit ? 'Save changes' : 'Create subject'}</button>\`
+      `${btnSecondary('Cancel', 'data-modal-close type="button"')}<button type="submit" form="subject-form" class="btn btn-primary">${isEdit ? 'Save changes' : 'Create subject'}</button>`
     ),
     { wide: true }
   );
@@ -153,7 +153,7 @@ function showSubjectForm(subject = null) {
 
     try {
       if (isEdit) {
-        await apiRequest(\`/subjects/\${subject.id}\`, { method: 'PUT', body: JSON.stringify(payload) });
+        await apiRequest(`/subjects/${subject.id}`, { method: 'PUT', body: JSON.stringify(payload) });
         toast('Subject updated successfully.', 'success');
       } else {
         await apiRequest('/subjects', { method: 'POST', body: JSON.stringify(payload) });

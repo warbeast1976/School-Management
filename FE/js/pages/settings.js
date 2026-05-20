@@ -2,7 +2,7 @@ import { apiRequest, ApiError } from '../api.js';
 import { getUser } from '../auth.js';
 import {
   setPageTitle, pageHeader, loadingHtml, toast, formField, inputCls, labelCls,
-  errorAlert, formatErrors, avatarInitials,
+  errorAlert, formatErrors, avatarInitials, escapeHtml
 } from '../ui.js';
 
 export async function renderSettings(container) {
