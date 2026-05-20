@@ -1,0 +1,29 @@
+<?php
+
+return [
+
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+
+    'allowed_methods' => ['*'],
+
+    'allowed_origins' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('CORS_ALLOWED_ORIGINS', 'https://fe.test,http://fe.test'))
+    ))),
+
+    // Live Server / VS Code (e.g. http://127.0.0.1:5500) and local ports
+    'allowed_origins_patterns' => [
+        '#^http://127\.0\.0\.1(:\d+)?$#',
+        '#^http://localhost(:\d+)?$#',
+        '#^https://fe\.test$#',
+    ],
+
+    'allowed_headers' => ['*'],
+
+    'exposed_headers' => [],
+
+    'max_age' => 0,
+
+    'supports_credentials' => false,
+
+];

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Academic Portal — School Management System" />
+  <title>Academic Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            school: {
+              50: '#eef2ff', 100: '#e0e7ff', 400: '#818cf8',
+              500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3',
+            },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans antialiased min-h-screen transition-colors duration-300">
+
+  <div id="toast-root" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 no-print" aria-live="polite"></div>
+
+  <!-- Login -->
+  <section id="view-login" class="hidden min-h-screen login-bg login-grid">
+    <div class="min-h-screen flex flex-col lg:flex-row">
+      <div class="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 xl:p-16 text-white relative z-10">
+        <div>
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center font-bold text-lg border border-white/20">AP</div>
+            <span class="font-semibold text-lg tracking-tight">Academic Portal</span>
+          </div>
+        </div>
+        <div class="max-w-md">
+          <h1 class="text-4xl xl:text-5xl font-bold leading-tight tracking-tight">Manage your school with confidence.</h1>
+          <p class="mt-4 text-indigo-200/90 text-lg leading-relaxed">Secure records, role-based access, and real-time grade management built for academic excellence.</p>
+          <ul class="mt-8 space-y-3 text-sm text-indigo-100/80">
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Admin & student dashboards</li>
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Encrypted API authentication</li>
+            <li class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Print-ready report cards</li>
+          </ul>
+        </div>
+        <p class="text-xs text-indigo-300/60">© School Management System</p>
+      </div>
+
+      <div class="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div class="glass-card dark:bg-slate-800/80 dark:border-slate-700/50 w-full max-w-md rounded-2xl p-8 sm:p-10">
+          <div class="lg:hidden flex items-center gap-3 mb-8">
+            <div class="w-10 h-10 rounded-xl bg-school-600 text-white flex items-center justify-center font-bold">AP</div>
+            <div>
+              <p class="font-bold text-slate-900 dark:text-white">Academic Portal</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Sign in to continue</p>
+            </div>
+          </div>
+          <div class="hidden lg:block mb-8">
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Enter your credentials to access the portal</p>
+          </div>
+          <form id="login-form" class="space-y-5" novalidate>
+            <div>
+              <label for="email" class="label-field dark:text-slate-300">Email address</label>
+              <input id="email" name="email" type="email" required autocomplete="username" placeholder="you@school.edu"
+                class="input-field dark:bg-slate-900 dark:border-slate-700 dark:text-white" />
+            </div>
+            <div>
+              <label for="password" class="label-field dark:text-slate-300">Password</label>
+              <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="••••••••"
+                class="input-field dark:bg-slate-900 dark:border-slate-700 dark:text-white" />
+            </div>
+            <div id="login-error" class="hidden alert-error" role="alert"><span></span></div>
+            <button type="submit" id="login-btn" class="btn btn-primary w-full py-3 text-base">
+              Sign in
+            </button>
+          </form>
+          <div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
+            <p class="text-xs text-slate-400 dark:text-slate-500 text-center leading-relaxed">
+              Demo accounts<br />
+              <span class="text-slate-500 dark:text-slate-400 font-medium">admin@school.local</span> ·
+              <span class="text-slate-500 dark:text-slate-400 font-medium">student1@school.local</span><br />
+              Password: <code class="text-school-600 dark:text-school-400 bg-school-50 dark:bg-school-900/30 px-1.5 py-0.5 rounded text-[11px] font-semibold">password</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- App -->
+  <div id="view-app" class="hidden min-h-screen">
+    <aside id="sidebar" class="sidebar no-print fixed inset-y-0 left-0 z-40 w-[17rem] transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out flex flex-col">
+      <div class="p-5 flex items-center gap-3 border-b border-white/5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-900/30">AP</div>
+        <div>
+          <p class="font-bold text-white text-sm tracking-tight">Academic Portal</p>
+          <p id="sidebar-role" class="text-[11px] text-slate-400 uppercase tracking-wider font-medium mt-0.5"></p>
+        </div>
+      </div>
+      <nav id="sidebar-nav" class="flex-1 px-3 py-4 space-y-1 overflow-y-auto"></nav>
+      <div class="p-4 m-3 mt-0 user-card">
+        <div class="flex items-center gap-3">
+          <div id="user-avatar" class="avatar text-sm">?</div>
+          <div class="min-w-0 flex-1">
+            <p id="sidebar-user" class="text-sm font-semibold text-white truncate"></p>
+            <p class="text-[11px] text-slate-400 truncate" id="sidebar-email"></p>
+          </div>
+        </div>
+        <button type="button" id="logout-btn" class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+          Sign out
+        </button>
+      </div>
+    </aside>
+
+    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 lg:hidden no-print"></div>
+
+    <div class="lg:ml-[17rem] flex flex-col min-h-screen">
+      <header class="app-header dark:bg-slate-900/85 dark:border-slate-800 no-print sticky top-0 z-20 px-4 sm:px-6 py-4">
+        <div class="flex items-center gap-4">
+          <button type="button" id="menu-toggle" class="lg:hidden p-2 -ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors" aria-label="Open menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <div class="flex-1 min-w-0">
+            <h2 id="page-title" class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">Dashboard</h2>
+            <p id="page-subtitle" class="text-sm text-slate-500 dark:text-slate-400 truncate"></p>
+          </div>
+          <button id="theme-toggle" type="button" class="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Toggle dark mode">
+            <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+          </button>
+        </div>
+      </header>
+      <main id="main-content" class="main-content flex-1 px-4 sm:px-6 pb-8 max-w-7xl w-full"></main>
+    </div>
+  </div>
+
+  <div id="modal-root" class="hidden fixed inset-0 z-50 no-print" aria-hidden="true" role="dialog">
+    <div class="modal-backdrop absolute inset-0" data-modal-close></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-6 pointer-events-none overflow-y-auto">
+      <div id="modal-panel" class="modal-panel pointer-events-auto my-auto"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
