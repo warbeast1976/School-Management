@@ -8,6 +8,7 @@ import {
 } from '../ui.js';
 
 let studentsCache = [];
+let searchTimeout;
 
 export async function renderAdminStudents(container) {
   setPageTitle('Students', 'Manage student accounts and profiles');
@@ -102,12 +103,13 @@ function bindEvents(container) {
       toast(err.message, 'error');
     }
   });
-  document.getElementById('student-search')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+  document.getElementById('student-search')?.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
       container.dataset.search = e.target.value;
       container.dataset.page = '1';
       loadStudents(container);
-    }
+    }, 300);
   });
 
   container.querySelectorAll('[data-edit]').forEach((btn) => {

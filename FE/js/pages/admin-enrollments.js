@@ -81,19 +81,19 @@ function row(e) {
   return `<tr>
     <td>
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-xs uppercase">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-school-100 to-school-200 dark:from-school-800 dark:to-school-900 text-school-700 dark:text-school-200 flex items-center justify-center font-bold text-sm uppercase shadow-sm border border-school-200 dark:border-school-700">
           ${studentName.charAt(0)}
         </div>
         <div>
-          <p class="font-medium text-slate-900">${studentName}</p>
-          <p class="text-xs text-slate-500">${studentNum}</p>
+          <p class="font-semibold text-slate-900 dark:text-white tracking-tight">${studentName}</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">${studentNum}</p>
         </div>
       </div>
     </td>
     <td>
-      <div class="inline-flex items-center px-2 py-1 rounded-md bg-slate-50 border border-slate-200">
-        <span class="font-mono text-xs font-semibold text-slate-700 mr-2">${subject?.code || ''}</span>
-        <span class="text-sm text-slate-600 truncate max-w-[200px]">${subject?.name || ''}</span>
+      <div class="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+        <span class="font-mono text-xs font-bold text-school-600 dark:text-school-400 mr-2 bg-school-100 dark:bg-school-900/50 px-1.5 py-0.5 rounded">${subject?.code || ''}</span>
+        <span class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate max-w-[200px]">${subject?.name || ''}</span>
       </div>
     </td>
     <td>
@@ -159,15 +159,19 @@ async function showAssignForm() {
 
   // Premium UI: Subject selection via cards/checkboxes
   const subjectCards = subjects.map(s => `
-    <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none hover:border-primary-500 hover:bg-primary-50 transition-colors has-[:checked]:border-primary-600 has-[:checked]:ring-1 has-[:checked]:ring-primary-600 has-[:checked]:bg-primary-50">
+    <label class="relative flex cursor-pointer rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 p-4 shadow-sm focus:outline-none hover:border-school-400 dark:hover:border-school-500 hover:bg-school-50/50 dark:hover:bg-school-900/20 transition-all duration-200 has-[:checked]:border-school-600 dark:has-[:checked]:border-school-400 has-[:checked]:ring-1 has-[:checked]:ring-school-600 dark:has-[:checked]:ring-school-400 has-[:checked]:bg-school-50 dark:has-[:checked]:bg-school-900/40 group overflow-hidden backdrop-blur-sm">
       <input type="checkbox" name="subject_ids[]" value="${s.id}" class="sr-only" ${!s.is_active ? 'disabled' : ''}>
-      <div class="flex flex-col">
-        <span class="block text-sm font-semibold text-slate-900">${escapeHtml(s.code)}</span>
-        <span class="block text-sm text-slate-600 mt-1">${escapeHtml(s.name)}</span>
-        <span class="block text-xs text-slate-500 mt-2">${s.units} units</span>
+      <div class="flex flex-col relative z-10">
+        <span class="block text-sm font-bold text-slate-900 dark:text-white group-has-[:checked]:text-school-700 dark:group-has-[:checked]:text-school-300">${escapeHtml(s.code)}</span>
+        <span class="block text-sm font-medium text-slate-600 dark:text-slate-400 mt-1 line-clamp-1">${escapeHtml(s.name)}</span>
+        <div class="mt-3 flex items-center gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">${s.units} units</span>
+        </div>
       </div>
-      ${!s.is_active ? '<span class="absolute top-2 right-2 flex h-2 w-2 rounded-full bg-red-500" title="Inactive"></span>' : ''}
-      <div class="absolute inset-0 rounded-lg border-2 border-transparent pointer-events-none has-[:checked]:border-primary-600"></div>
+      ${!s.is_active ? '<span class="absolute top-3 right-3 flex h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" title="Inactive"></span>' : ''}
+      <div class="absolute right-0 bottom-0 opacity-0 group-has-[:checked]:opacity-100 transition-opacity p-2 text-school-600 dark:text-school-400">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      </div>
     </label>
   `).join('');
 
@@ -187,8 +191,8 @@ async function showAssignForm() {
       </div>
       
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-3">Select Subjects to Assign</label>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto p-1">
+        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 tracking-wide uppercase text-xs">Select Subjects to Assign</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[22rem] overflow-y-auto p-1 scrollbar-hide">
           ${subjectCards}
         </div>
       </div>
