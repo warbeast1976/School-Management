@@ -63,4 +63,13 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:admin');
     Route::delete('/grade-records/{gradeRecord}', [GradeRecordController::class, 'destroy'])
         ->middleware('role:admin');
+
+    Route::get('/enrollments', [App\Http\Controllers\Api\EnrollmentController::class, 'index'])
+        ->middleware('role:admin,student');
+    Route::post('/enrollments', [App\Http\Controllers\Api\EnrollmentController::class, 'store'])
+        ->middleware('role:admin');
+    Route::put('/enrollments/{enrollment}', [App\Http\Controllers\Api\EnrollmentController::class, 'update'])
+        ->middleware('role:admin');
+    Route::delete('/enrollments/{enrollment}', [App\Http\Controllers\Api\EnrollmentController::class, 'destroy'])
+        ->middleware('role:admin');
 });

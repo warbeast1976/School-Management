@@ -41,6 +41,11 @@ class StudentProfile extends Model
         return $this->hasMany(GradeRecord::class);
     }
 
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
     public function getFullNameAttribute(): string
     {
         $middle = $this->middle_name ? " {$this->middle_name} " : ' ';

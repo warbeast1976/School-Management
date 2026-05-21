@@ -9,6 +9,7 @@ import { renderAdminGrades } from './pages/admin-grades.js';
 import { renderAdminSubjects } from './pages/admin-subjects.js';
 import { renderStudentDashboard } from './pages/student-dashboard.js';
 import { renderSettings } from './pages/settings.js';
+import { renderAdminEnrollments } from './pages/admin-enrollments.js';
 
 const viewLogin = document.getElementById('view-login');
 const viewApp = document.getElementById('view-app');
@@ -18,6 +19,7 @@ const sidebarNav = document.getElementById('sidebar-nav');
 const ADMIN_NAV = [
   { path: '/admin', label: 'Dashboard', icon: icons.dashboard },
   { path: '/admin/students', label: 'Students', icon: icons.students },
+  { path: '/admin/enrollments', label: 'Enrollments', icon: icons.users },
   { path: '/admin/subjects', label: 'Subjects', icon: icons.records },
   { path: '/admin/grades', label: 'Grade records', icon: icons.grades },
   { path: '/settings', label: 'Settings', icon: icons.settings },
@@ -90,6 +92,11 @@ registerRoute('/admin', async () => {
 registerRoute('/admin/students', async () => {
   showAppView(getUser());
   await renderPage(renderAdminStudents);
+}, { roles: ['admin'] });
+
+registerRoute('/admin/enrollments', async () => {
+  showAppView(getUser());
+  await renderPage(renderAdminEnrollments);
 }, { roles: ['admin'] });
 
 registerRoute('/admin/subjects', async () => {
