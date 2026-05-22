@@ -1,10 +1,13 @@
-import { apiRequest, apiDownload, ApiError } from '../api.js';
+import { apiRequest, apiFormRequest, apiDownload, ApiError } from '../api.js';
 import { icons } from '../icons.js';
+import {
+  profileFieldsHtml, bindPhotoPreview, appendProfileFormData,
+} from '../student-profile-form.js';
 import {
   setPageTitle, escapeHtml, loadingHtml, toast, openModal, closeModal,
   btnPrimary, btnSecondary, formatErrors, pageHeader,
   tableActions, formField, modalShell, inputCls, emptyState, errorAlert,
-  paginationBar, bindPagination, confirmDialog,
+  paginationBar, bindPagination, confirmDialog, studentAvatar,
 } from '../ui.js';
 
 let studentsCache = [];
@@ -74,12 +77,11 @@ async function loadStudents(container) {
 
 function row(s) {
   const statusClass = s.enrollment_status === 'active' ? 'badge-green' : 'badge-slate';
-  const initials = (s.first_name?.[0] || '') + (s.last_name?.[0] || '');
   return `<tr>
     <td><span class="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded">${escapeHtml(s.student_number)}</span></td>
     <td>
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">${escapeHtml(initials.toUpperCase())}</div>
+        ${studentAvatar(s, { size: 'sm' })}
         <div>
           <p class="font-medium text-slate-900">${escapeHtml(s.full_name)}</p>
           <p class="text-xs text-slate-500">${escapeHtml(s.user?.email || '')}</p>
@@ -151,7 +153,10 @@ function showStudentForm(student = null) {
 
   const body = `
     <p id="form-error" class="hidden alert-error mb-4" role="alert"><span></span></p>
-    <form id="student-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form id="student-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4" enctype="multipart/form-data">
+      <div class="sm:col-span-2">
+        <h4 class="text-sm font-semibold text-slate-800 mb-1">Account</h4>
+      </div>
       ${formField('First name', 'first_name', { value: student?.first_name, required: true })}
       ${formField('Last name', 'last_name', { value: student?.last_name, required: true })}
       ${formField('Display name', 'name', { value: student?.user?.name, required: true, colspan: '2' })}
@@ -160,6 +165,13 @@ function showStudentForm(student = null) {
       ${!isEdit
     ? `${formField('Password', 'password', { type: 'password', required: true })}${formField('Confirm password', 'password_confirmation', { type: 'password', required: true })}`
     : `${formField('New password', 'password', { type: 'password' })}${formField('Confirm password', 'password_confirmation', { type: 'password' })}`}
+      <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+        <h4 class="text-sm font-semibold text-slate-800 mb-3">Profile &amp; personal details</h4>
+      </div>
+      ${profileFieldsHtml(student, { includeAccount: false })}
+      <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+        <h4 class="text-sm font-semibold text-slate-800 mb-3">Enrollment</h4>
+      </div>
       ${formField('Grade level', 'grade_level', { value: student?.grade_level, required: true })}
       ${formField('Section', 'section', { value: student?.section || '' })}
       ${formField('Enrollment status', 'enrollment_status', { type: 'select', required: true, options: statusOpts, colspan: '2' })}
@@ -168,30 +180,31 @@ function showStudentForm(student = null) {
   openModal(
     modalShell(
       isEdit ? 'Edit student' : 'Add student',
-      isEdit ? 'Update profile and account details.' : 'Create a new student account and profile.',
+      isEdit ? 'Update profile, photo, and account details.' : 'Create a student account with full profile information.',
       body,
       `${btnSecondary('Cancel', 'data-modal-close type="button"')}<button type="submit" form="student-form" class="btn btn-primary">${isEdit ? 'Save changes' : 'Create student'}</button>`
     ),
     { wide: true }
   );
 
+  bindPhotoPreview();
+
   document.getElementById('student-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    const payload = Object.fromEntries(fd.entries());
-    if (!payload.password) {
-      delete payload.password;
-      delete payload.password_confirmation;
-    }
+    const form = e.target;
+    const fd = new FormData(form);
+    appendProfileFormData(fd);
+
     const errEl = document.getElementById('form-error');
     const errSpan = errEl?.querySelector('span');
 
     try {
       if (isEdit) {
-        await apiRequest(`/students/${student.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        fd.append('_method', 'PUT');
+        await apiFormRequest(`/students/${student.id}`, fd, { method: 'POST' });
         toast('Student updated successfully.', 'success');
       } else {
-        await apiRequest('/students', { method: 'POST', body: JSON.stringify(payload) });
+        await apiFormRequest('/students', fd, { method: 'POST' });
         toast('Student created successfully.', 'success');
       }
       closeModal();

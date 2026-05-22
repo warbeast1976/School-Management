@@ -5,17 +5,54 @@ namespace App\Services;
 use App\Enums\UserRole;
 use App\Models\StudentProfile;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class StudentService
 {
+    private const OWN_PROFILE_FIELDS = [
+        'first_name',
+        'last_name',
+        'middle_name',
+        'date_of_birth',
+        'gender',
+        'religion',
+        'nationality',
+        'place_of_birth',
+        'blood_type',
+        'contact_number',
+        'address',
+    ];
+
+    private const PROFILE_FIELDS = [
+        'student_number',
+        'first_name',
+        'last_name',
+        'middle_name',
+        'date_of_birth',
+        'gender',
+        'religion',
+        'nationality',
+        'place_of_birth',
+        'blood_type',
+        'contact_number',
+        'address',
+        'grade_level',
+        'section',
+        'enrollment_status',
+    ];
+
+    public function __construct(
+        private readonly StudentPhotoService $photoService
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data): StudentProfile
+    public function create(array $data, ?UploadedFile $photo = null): StudentProfile
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $photo) {
             $user = User::query()->create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -24,27 +61,23 @@ class StudentService
                 'is_active' => true,
             ]);
 
-            return StudentProfile::query()->create([
-                'user_id' => $user->id,
-                'student_number' => $data['student_number'],
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'middle_name' => $data['middle_name'] ?? null,
-                'date_of_birth' => $data['date_of_birth'] ?? null,
-                'gender' => $data['gender'] ?? null,
-                'grade_level' => $data['grade_level'],
-                'section' => $data['section'] ?? null,
-                'enrollment_status' => $data['enrollment_status'],
-            ])->load('user');
+            $profileData = $this->profilePayload($data);
+            $profileData['user_id'] = $user->id;
+
+            if ($photo !== null) {
+                $profileData['photo_path'] = $this->photoService->store($photo);
+            }
+
+            return StudentProfile::query()->create($profileData)->load('user');
         });
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(StudentProfile $student, array $data): StudentProfile
+    public function update(StudentProfile $student, array $data, ?UploadedFile $photo = null): StudentProfile
     {
-        return DB::transaction(function () use ($student, $data) {
+        return DB::transaction(function () use ($student, $data, $photo) {
             $user = $student->user;
 
             $userData = array_filter([
@@ -61,22 +94,53 @@ class StudentService
                 $user->update($userData);
             }
 
-            $profileFields = [
-                'student_number',
-                'first_name',
-                'last_name',
-                'middle_name',
-                'date_of_birth',
-                'gender',
-                'grade_level',
-                'section',
-                'enrollment_status',
-            ];
             $profileData = [];
-            foreach ($profileFields as $field) {
+            foreach (self::PROFILE_FIELDS as $field) {
                 if (array_key_exists($field, $data)) {
                     $profileData[$field] = $data[$field];
                 }
+            }
+
+            if ($photo !== null) {
+                $profileData['photo_path'] = $this->photoService->store($photo, $student->photo_path);
+            } elseif (! empty($data['remove_photo'])) {
+                $this->photoService->delete($student->photo_path);
+                $profileData['photo_path'] = null;
+            }
+
+            if ($profileData !== []) {
+                $student->update($profileData);
+            }
+
+            return $student->fresh(['user']);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateOwnProfile(StudentProfile $student, array $data, ?UploadedFile $photo = null): StudentProfile
+    {
+        return DB::transaction(function () use ($student, $data, $photo) {
+            $user = $student->user;
+
+            $user->update([
+                'name' => $data['name'],
+                'email' => $data['email'],
+            ]);
+
+            $profileData = [];
+            foreach (self::OWN_PROFILE_FIELDS as $field) {
+                if (array_key_exists($field, $data)) {
+                    $profileData[$field] = $data[$field];
+                }
+            }
+
+            if ($photo !== null) {
+                $profileData['photo_path'] = $this->photoService->store($photo, $student->photo_path);
+            } elseif (! empty($data['remove_photo'])) {
+                $this->photoService->delete($student->photo_path);
+                $profileData['photo_path'] = null;
             }
 
             if ($profileData !== []) {
@@ -90,9 +154,26 @@ class StudentService
     public function delete(StudentProfile $student): void
     {
         DB::transaction(function () use ($student) {
+            $this->photoService->delete($student->photo_path);
             $user = $student->user;
             $student->delete();
             $user?->delete();
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function profilePayload(array $data): array
+    {
+        $payload = [];
+        foreach (self::PROFILE_FIELDS as $field) {
+            if (array_key_exists($field, $data)) {
+                $payload[$field] = $data[$field];
+            }
+        }
+
+        return $payload;
     }
 }

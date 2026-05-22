@@ -739,6 +739,18 @@
   font-size: 0.875rem;
 }
 
+.alert-success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  background: rgb(34 197 94 / 0.1);
+  border: 1px solid rgb(34 197 94 / 0.3);
+  color: #16a34a;
+  font-size: 0.875rem;
+}
+
 @media print {
   .no-print { display: none !important; }
   body { background: white !important; }

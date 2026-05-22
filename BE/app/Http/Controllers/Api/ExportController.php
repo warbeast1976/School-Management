@@ -15,8 +15,10 @@ class ExportController extends Controller
 
         return $this->streamCsv($filename, function ($handle) {
             fputcsv($handle, [
-                'Student Number', 'First Name', 'Last Name', 'Email',
-                'Grade Level', 'Section', 'Status', 'Date of Birth',
+                'Student Number', 'First Name', 'Last Name', 'Middle Name', 'Email',
+                'Grade Level', 'Section', 'Status', 'Date of Birth', 'Gender',
+                'Religion', 'Nationality', 'Place of Birth', 'Blood Type',
+                'Contact Number', 'Address',
             ]);
 
             StudentProfile::query()
@@ -28,11 +30,19 @@ class ExportController extends Controller
                             $s->student_number,
                             $s->first_name,
                             $s->last_name,
+                            $s->middle_name,
                             $s->user?->email,
                             $s->grade_level,
                             $s->section,
                             $s->enrollment_status,
                             $s->date_of_birth?->format('Y-m-d'),
+                            $s->gender,
+                            $s->religion,
+                            $s->nationality,
+                            $s->place_of_birth,
+                            $s->blood_type,
+                            $s->contact_number,
+                            $s->address,
                         ]);
                     }
                 });

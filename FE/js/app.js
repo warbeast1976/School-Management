@@ -1,4 +1,7 @@
-import { getToken, getUser, login, logout, refreshUser } from './auth.js';
+import {
+  getToken, getUser, login, logout, refreshUser,
+  forgotPassword, resetPassword, getRememberedEmail, isRememberEnabled,
+} from './auth.js';
 import { registerRoute, resolveRoute } from './router.js';
 import { toast, formatErrors, avatarInitials } from './ui.js';
 import { icons } from './icons.js';
@@ -30,9 +33,42 @@ const STUDENT_NAV = [
   { path: '/settings', label: 'Settings', icon: icons.settings },
 ];
 
-function showLoginView() {
+function showAuthView(mode = 'login') {
   viewLogin.classList.remove('hidden');
   viewApp.classList.add('hidden');
+
+  document.getElementById('login-panel')?.classList.toggle('hidden', mode !== 'login');
+  document.getElementById('forgot-panel')?.classList.toggle('hidden', mode !== 'forgot');
+  document.getElementById('reset-panel')?.classList.toggle('hidden', mode !== 'reset');
+
+  const subtitles = {
+    login: 'Sign in to continue',
+    forgot: 'Reset your password',
+    reset: 'Choose a new password',
+  };
+  const sub = document.getElementById('auth-mobile-subtitle');
+  if (sub) sub.textContent = subtitles[mode] || subtitles.login;
+
+  if (mode === 'login') {
+    const emailInput = document.getElementById('email');
+    const rememberCb = document.getElementById('remember-me');
+    if (emailInput && getRememberedEmail()) emailInput.value = getRememberedEmail();
+    if (rememberCb) rememberCb.checked = isRememberEnabled();
+  }
+
+  if (mode === 'reset') {
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const token = params.get('token') || '';
+    const email = params.get('email') ? decodeURIComponent(params.get('email')) : '';
+    const tokenEl = document.getElementById('reset-token');
+    const emailEl = document.getElementById('reset-email');
+    if (tokenEl) tokenEl.value = token;
+    if (emailEl) emailEl.value = email;
+  }
+}
+
+function showLoginView() {
+  showAuthView('login');
 }
 
 function showAppView(user) {
@@ -84,6 +120,22 @@ registerRoute('/login', async () => {
   showLoginView();
 });
 
+registerRoute('/forgot-password', async () => {
+  if (getToken()) {
+    window.location.hash = '#/admin';
+    return;
+  }
+  showAuthView('forgot');
+});
+
+registerRoute('/reset-password', async () => {
+  if (getToken()) {
+    window.location.hash = '#/admin';
+    return;
+  }
+  showAuthView('reset');
+});
+
 registerRoute('/admin', async () => {
   showAppView(getUser());
   await renderPage(renderAdminDashboard);
@@ -119,7 +171,30 @@ registerRoute('/settings', async () => {
   await renderPage(renderSettings);
 }, { roles: ['admin', 'student'] });
 
-document.getElementById('login-form').addEventListener('submit', async (e) => {
+document.getElementById('toggle-password')?.addEventListener('click', () => {
+  const input = document.getElementById('password');
+  const show = document.getElementById('eye-show');
+  const hide = document.getElementById('eye-hide');
+  if (!input) return;
+  const visible = input.type === 'text';
+  input.type = visible ? 'password' : 'text';
+  show?.classList.toggle('hidden', !visible);
+  hide?.classList.toggle('hidden', visible);
+});
+
+document.getElementById('toggle-reset-password')?.addEventListener('click', () => {
+  const input = document.getElementById('reset-password');
+  const panel = document.getElementById('reset-panel');
+  if (!input || !panel) return;
+  const show = panel.querySelector('.reset-eye-show');
+  const hide = panel.querySelector('.reset-eye-hide');
+  const visible = input.type === 'text';
+  input.type = visible ? 'password' : 'text';
+  show?.classList.toggle('hidden', !visible);
+  hide?.classList.toggle('hidden', visible);
+});
+
+document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('login-btn');
   const errEl = document.getElementById('login-error');
@@ -131,7 +206,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
   try {
     const fd = new FormData(e.target);
-    const user = await login(fd.get('email'), fd.get('password'));
+    const remember = document.getElementById('remember-me')?.checked ?? false;
+    const user = await login(fd.get('email'), fd.get('password'), { remember });
     toast(`Welcome back, ${user.name.split(' ')[0]}!`, 'success');
     window.location.hash = user.role === 'admin' ? '#/admin' : '#/student';
   } catch (err) {
@@ -140,6 +216,68 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   } finally {
     btn.disabled = false;
     btn.innerHTML = prevLabel;
+  }
+});
+
+document.getElementById('forgot-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('forgot-btn');
+  const errEl = document.getElementById('forgot-error');
+  const okEl = document.getElementById('forgot-success');
+  const errText = errEl?.querySelector('span') || errEl;
+  const okText = okEl?.querySelector('span') || okEl;
+  errEl?.classList.add('hidden');
+  okEl?.classList.add('hidden');
+  btn.disabled = true;
+  const prevLabel = btn.textContent;
+  btn.textContent = 'Sending…';
+
+  try {
+    const fd = new FormData(e.target);
+    const res = await forgotPassword(fd.get('email'));
+    okText.textContent = res.message || 'If an account exists for that email, a reset link has been sent.';
+    okEl?.classList.remove('hidden');
+    e.target.reset();
+  } catch (err) {
+    errText.textContent = err instanceof ApiError ? formatErrors(err.errors) || err.message : err.message;
+    errEl?.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevLabel;
+  }
+});
+
+document.getElementById('reset-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('reset-btn');
+  const errEl = document.getElementById('reset-error');
+  const errText = errEl?.querySelector('span') || errEl;
+  errEl?.classList.add('hidden');
+  btn.disabled = true;
+  const prevLabel = btn.textContent;
+  btn.textContent = 'Updating…';
+
+  try {
+    const fd = new FormData(e.target);
+    const password = fd.get('password');
+    const password_confirmation = fd.get('password_confirmation');
+    if (password !== password_confirmation) {
+      throw new Error('Passwords do not match.');
+    }
+    const res = await resetPassword({
+      email: fd.get('email'),
+      token: fd.get('token'),
+      password,
+      password_confirmation,
+    });
+    toast(res.message || 'Password updated. Please sign in.', 'success');
+    window.location.hash = '#/login';
+  } catch (err) {
+    errText.textContent = err instanceof ApiError ? formatErrors(err.errors) || err.message : err.message;
+    errEl?.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevLabel;
   }
 });
 

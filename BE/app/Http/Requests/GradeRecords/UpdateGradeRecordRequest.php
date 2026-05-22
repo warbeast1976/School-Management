@@ -3,13 +3,14 @@
 namespace App\Http\Requests\GradeRecords;
 
 use App\Http\Requests\Concerns\SanitizesInput;
+use App\Http\Requests\Concerns\ValidatesEnrollmentForGrading;
 use App\Models\GradeRecord;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateGradeRecordRequest extends FormRequest
 {
-    use SanitizesInput;
+    use SanitizesInput, ValidatesEnrollmentForGrading;
 
     public function authorize(): bool
     {
@@ -71,7 +72,17 @@ class UpdateGradeRecordRequest extends FormRequest
                     'semester',
                     'A grade record already exists for this student, subject, school year, and semester.'
                 );
+
+                return;
             }
+
+            $this->assertStudentEnrolledInSubject(
+                $validator,
+                $studentId,
+                $subjectId,
+                $schoolYear,
+                $semester
+            );
         });
     }
 }

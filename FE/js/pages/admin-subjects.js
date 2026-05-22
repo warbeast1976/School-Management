@@ -1,17 +1,18 @@
 import { apiRequest, ApiError } from '../api.js';
-import { icons } from '../icons.js';
 import {
   setPageTitle, escapeHtml, loadingHtml, toast, openModal, closeModal,
-  btnPrimary, btnSecondary, formatErrors, pageHeader,
+  btnPrimary, btnSecondary, btnDanger, formatErrors, pageHeader,
   tableActions, formField, modalShell, emptyState, errorAlert,
   paginationBar, bindPagination, confirmDialog, inputCls
 } from '../ui.js';
 
 let subjectsCache = [];
+let selectedIds = new Set();
 
 export async function renderAdminSubjects(container) {
   setPageTitle('Subjects', 'Manage course subjects and curriculum');
   if (!container.dataset.page) container.dataset.page = '1';
+  selectedIds = new Set();
   container.innerHTML = loadingHtml();
   await loadSubjects(container);
 }
@@ -25,7 +26,8 @@ async function loadSubjects(container) {
     subjectsCache = res.data.items || res.data;
     const pagination = res.data.pagination;
 
-    const actions = btnPrimary('Add subject', 'id="btn-add-subject"');
+    const bulkBtn = btnDanger('Delete selected', 'id="btn-bulk-delete" disabled');
+    const actions = `${bulkBtn}${btnPrimary('Add subject', 'id="btn-add-subject"')}`;
 
     container.innerHTML = `
       ${pageHeader('Subjects', 'Manage subjects, units, and curriculum status.', actions)}
@@ -34,6 +36,9 @@ async function loadSubjects(container) {
           <table class="data-table">
             <thead>
               <tr>
+                <th class="w-10 no-print">
+                  <input type="checkbox" id="select-all-subjects" class="w-4 h-4 rounded border-slate-300" aria-label="Select all on this page" />
+                </th>
                 <th>Code</th>
                 <th>Subject Name</th>
                 <th>Units</th>
@@ -44,20 +49,20 @@ async function loadSubjects(container) {
             <tbody>
               ${subjectsCache.length
     ? subjectsCache.map(row).join('')
-    : `<tr><td colspan="5">${emptyState('No subjects found', 'Add a subject to get started.')}</td></tr>`}
+    : `<tr><td colspan="6">${emptyState('No subjects found', 'Add a subject to get started.')}</td></tr>`}
             </tbody>
           </table>
         </div>
-        ${pagination ? paginationBar(pagination) : ''}
+        ${paginationBar(pagination)}
       </div>`;
 
     bindEvents(container);
-    if (pagination) {
-      bindPagination(container, (p) => {
-        container.dataset.page = String(p);
-        loadSubjects(container);
-      });
-    }
+    bindPagination(container, (p) => {
+      container.dataset.page = String(p);
+      selectedIds = new Set();
+      loadSubjects(container);
+    });
+    updateBulkDeleteButton(container);
   } catch (err) {
     container.innerHTML = pageHeader('Subjects') + errorAlert(err.message);
   }
@@ -66,8 +71,12 @@ async function loadSubjects(container) {
 function row(s) {
   const statusClass = s.is_active ? 'badge-green' : 'badge-slate';
   const statusText = s.is_active ? 'Active' : 'Inactive';
-  
+  const checked = selectedIds.has(s.id) ? 'checked' : '';
+
   return `<tr>
+    <td class="no-print">
+      <input type="checkbox" class="subject-select w-4 h-4 rounded border-slate-300" data-id="${s.id}" ${checked} aria-label="Select ${escapeHtml(s.code)}" />
+    </td>
     <td><span class="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-1 rounded">${escapeHtml(s.code)}</span></td>
     <td>
       <p class="font-medium text-slate-900">${escapeHtml(s.name)}</p>
@@ -79,8 +88,75 @@ function row(s) {
   </tr>`;
 }
 
+function updateBulkDeleteButton(container) {
+  const btn = container.querySelector('#btn-bulk-delete');
+  if (!btn) return;
+  const count = selectedIds.size;
+  btn.disabled = count === 0;
+  btn.textContent = count > 0 ? `Delete selected (${count})` : 'Delete selected';
+
+  const selectAll = container.querySelector('#select-all-subjects');
+  if (selectAll && subjectsCache.length) {
+    const pageIds = subjectsCache.map((s) => s.id);
+    const allSelected = pageIds.every((id) => selectedIds.has(id));
+    const someSelected = pageIds.some((id) => selectedIds.has(id));
+    selectAll.checked = allSelected;
+    selectAll.indeterminate = someSelected && !allSelected;
+  }
+}
+
 function bindEvents(container) {
   document.getElementById('btn-add-subject')?.addEventListener('click', () => showSubjectForm());
+
+  container.querySelector('#select-all-subjects')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    subjectsCache.forEach((s) => {
+      if (checked) selectedIds.add(s.id);
+      else selectedIds.delete(s.id);
+    });
+    container.querySelectorAll('.subject-select').forEach((cb) => {
+      cb.checked = checked;
+    });
+    updateBulkDeleteButton(container);
+  });
+
+  container.querySelectorAll('.subject-select').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      updateBulkDeleteButton(container);
+    });
+  });
+
+  container.querySelector('#btn-bulk-delete')?.addEventListener('click', async () => {
+    if (selectedIds.size === 0) return;
+    const selected = subjectsCache.filter((s) => selectedIds.has(s.id));
+    const names = selected.map((s) => `${s.name} (${s.code})`).join(', ');
+    const ok = await confirmDialog({
+      title: 'Delete selected subjects',
+      message: `Remove ${selectedIds.size} subject(s)? ${names}. This cannot be undone.`,
+      confirmLabel: 'Delete all',
+      danger: true,
+    });
+    if (!ok) return;
+
+    try {
+      const res = await apiRequest('/subjects/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids: [...selectedIds] }),
+      });
+      const { deleted = [], failed = [] } = res.data || {};
+      selectedIds = new Set(failed.map((f) => f.id));
+      if (deleted.length) toast(`${deleted.length} subject(s) removed.`, 'success');
+      if (failed.length) {
+        failed.forEach((f) => toast(`${f.code}: ${f.message}`, 'error'));
+      }
+      await loadSubjects(container);
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
 
   container.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -102,6 +178,7 @@ function bindEvents(container) {
       if (!ok) return;
       try {
         await apiRequest(`/subjects/${subject.id}`, { method: 'DELETE' });
+        selectedIds.delete(subject.id);
         toast('Subject removed successfully.', 'success');
         loadSubjects(container);
       } catch (err) {

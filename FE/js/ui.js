@@ -129,9 +129,15 @@ export function tableActions(editId, deleteId) {
   </div>`;
 }
 
-export function formField(label, name, { type = 'text', value = '', required = false, colspan = '', options = [] } = {}) {
+export function formField(label, name, { type = 'text', value = '', required = false, colspan = '', options = [], rows = 3 } = {}) {
   const col = colspan ? `sm:col-span-${colspan}` : '';
   const extra = type === 'number' ? 'step="0.01" min="0" max="100"' : '';
+  if (type === 'textarea') {
+    return `<div class="${col}">
+      <label class="${labelCls}" for="${name}">${escapeHtml(label)}</label>
+      <textarea id="${name}" name="${name}" rows="${rows}" class="${inputCls}" ${required ? 'required' : ''}>${escapeHtml(value)}</textarea>
+    </div>`;
+  }
   if (type === 'select') {
     return `<div class="${col}">
       <label class="${labelCls}" for="${name}">${escapeHtml(label)}</label>
@@ -172,6 +178,24 @@ export function avatarInitials(name) {
   return parts.length >= 2
     ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
     : (parts[0]?.[0] || '?').toUpperCase();
+}
+
+/** Student list/detail avatar: photo when available, otherwise initials. */
+export function studentAvatar(student, { size = 'md', className = '' } = {}) {
+  const name = student?.full_name || `${student?.first_name || ''} ${student?.last_name || ''}`.trim();
+  const initials = avatarInitials(name);
+  const sizes = {
+    sm: 'w-9 h-9 rounded-lg text-xs',
+    md: 'w-16 h-16 rounded-2xl text-2xl',
+    lg: 'w-20 h-20 rounded-2xl text-2xl',
+  };
+  const cls = `${sizes[size] || sizes.md} shrink-0 object-cover border border-slate-200 ${className}`.trim();
+
+  if (student?.photo_url) {
+    return `<img src="${escapeHtml(student.photo_url)}" alt="" class="${cls} bg-slate-100" />`;
+  }
+
+  return `<div class="${cls} bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">${escapeHtml(initials)}</div>`;
 }
 
 export function errorAlert(message) {

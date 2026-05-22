@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Models\Enrollment;
 use App\Models\GradeRecord;
 use App\Models\StudentProfile;
 use App\Models\Subject;
@@ -90,9 +91,24 @@ class SchoolDataSeeder extends Seeder
                 'enrollment_status' => 'active',
                 'date_of_birth' => now()->subYears(16 + $index)->toDateString(),
                 'gender' => $index === 1 ? 'female' : 'male',
+                'religion' => $index === 0 ? 'Roman Catholic' : ($index === 1 ? 'Iglesia ni Cristo' : 'Roman Catholic'),
+                'nationality' => 'Filipino',
+                'place_of_birth' => 'Manila',
+                'blood_type' => ['O+', 'A+', 'B+'][$index],
+                'contact_number' => '09'.str_pad((string) (9000000000 + $index), 10, '0', STR_PAD_LEFT),
+                'address' => 'Sample Address St., Quezon City',
             ]);
 
             foreach ($subjects as $subjectIndex => $subject) {
+                Enrollment::query()->create([
+                    'student_profile_id' => $profile->id,
+                    'subject_id' => $subject->id,
+                    'school_year' => $schoolYear,
+                    'semester' => $semester,
+                    'status' => 'enrolled',
+                    'assigned_by' => $admin->id,
+                ]);
+
                 $value = $grades[$subjectIndex];
 
                 GradeRecord::query()->create([

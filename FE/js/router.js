@@ -5,8 +5,9 @@ export function registerRoute(path, handler, options = {}) {
 }
 
 export function getRoute() {
-  const hash = window.location.hash.slice(1) || '/login';
-  return hash.startsWith('/') ? hash : `/${hash}`;
+  const raw = window.location.hash.slice(1) || '/login';
+  const path = raw.split('?')[0];
+  return path.startsWith('/') ? path : `/${path}`;
 }
 
 export async function navigate(path) {
@@ -17,8 +18,8 @@ export async function resolveRoute() {
   const path = getRoute();
   const user = (await import('./auth.js')).getUser();
 
-  if (path === '/login') {
-    return routes.get('/login')?.handler();
+  if (path === '/login' || path === '/forgot-password' || path === '/reset-password') {
+    return routes.get(path)?.handler();
   }
 
   if (!user) {

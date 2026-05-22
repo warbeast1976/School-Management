@@ -3,29 +3,26 @@
 namespace App\Http\Requests\Students;
 
 use App\Http\Requests\Concerns\SanitizesInput;
-use App\Models\StudentProfile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateStudentRequest extends FormRequest
+class UpdateMyStudentProfileRequest extends FormRequest
 {
     use SanitizesInput;
 
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return $this->user()?->isStudent() ?? false;
     }
 
     protected function prepareForValidation(): void
     {
         $nullable = [
             'middle_name', 'gender', 'religion', 'nationality', 'place_of_birth',
-            'blood_type', 'contact_number', 'address', 'date_of_birth', 'section',
+            'blood_type', 'contact_number', 'address', 'date_of_birth',
         ];
-        $required = [
-            'name', 'email', 'student_number', 'first_name', 'last_name',
-            'grade_level', 'enrollment_status',
-        ];
+
+        $required = ['name', 'email', 'first_name', 'last_name'];
 
         $merged = [];
         foreach ($required as $field) {
@@ -46,11 +43,6 @@ class UpdateStudentRequest extends FormRequest
                 'remove_photo' => filter_var($this->input('remove_photo'), FILTER_VALIDATE_BOOLEAN),
             ]);
         }
-
-        if ($this->exists('password') && $this->input('password') === '') {
-            $this->request->remove('password');
-            $this->request->remove('password_confirmation');
-        }
     }
 
     /**
@@ -58,30 +50,17 @@ class UpdateStudentRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var StudentProfile $student */
-        $student = $this->route('studentProfile');
-
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:150'],
+            'name' => ['required', 'string', 'max:150'],
             'email' => [
-                'sometimes',
                 'required',
                 'string',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($student->user_id),
+                Rule::unique('users', 'email')->ignore($this->user()->id),
             ],
-            'password' => ['sometimes', 'nullable', 'string', 'min:8', 'max:255', 'confirmed'],
-            'is_active' => ['sometimes', 'boolean'],
-            'student_number' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:30',
-                Rule::unique('student_profiles', 'student_number')->ignore($student->id),
-            ],
-            'first_name' => ['sometimes', 'required', 'string', 'max:100'],
-            'last_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', 'string', 'max:20', Rule::in(['male', 'female', 'other'])],
@@ -93,9 +72,6 @@ class UpdateStudentRequest extends FormRequest
             'blood_type' => ['nullable', 'string', 'max:5', Rule::in(['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'])],
             'contact_number' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:500'],
-            'grade_level' => ['sometimes', 'required', 'string', 'max:50'],
-            'section' => ['nullable', 'string', 'max:50'],
-            'enrollment_status' => ['sometimes', 'required', 'string', 'max:30', Rule::in(['active', 'inactive', 'graduated', 'transferred'])],
         ];
     }
 }

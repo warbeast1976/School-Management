@@ -9,12 +9,17 @@ use App\Http\Resources\GradeRecordResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\GradeRecord;
 use App\Models\User;
+use App\Services\GradingCompletionService;
 use App\Support\LetterGrade;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GradeRecordController extends Controller
 {
+    public function __construct(
+        private readonly GradingCompletionService $gradingCompletion
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -91,6 +96,12 @@ class GradeRecordController extends Controller
 
         $record->load(['subject', 'studentProfile.user', 'recordedBy']);
 
+        $this->gradingCompletion->notifyIfTermComplete(
+            (int) $record->student_profile_id,
+            $record->school_year,
+            $record->semester
+        );
+
         return ApiResponse::success(
             GradeRecordResource::make($record),
             'Grade record created successfully.',
@@ -109,6 +120,12 @@ class GradeRecordController extends Controller
 
         $gradeRecord->update($data);
         $gradeRecord->load(['subject', 'studentProfile.user', 'recordedBy']);
+
+        $this->gradingCompletion->notifyIfTermComplete(
+            (int) $gradeRecord->student_profile_id,
+            $gradeRecord->school_year,
+            $gradeRecord->semester
+        );
 
         return ApiResponse::success(
             GradeRecordResource::make($gradeRecord),

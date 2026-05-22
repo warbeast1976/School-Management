@@ -2,8 +2,18 @@ import { apiRequest } from '../api.js';
 import { getUser } from '../auth.js';
 import { icons } from '../icons.js';
 import {
-  setPageTitle, escapeHtml, loadingHtml, pageHeader, gradeClass, errorAlert, avatarInitials,
+  setPageTitle, escapeHtml, loadingHtml, pageHeader, gradeClass, errorAlert, studentAvatar,
 } from '../ui.js';
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
+}
+
+function profileTile(label, value) {
+  const display = value != null && String(value).trim() !== '' ? value : '—';
+  return `<div class="info-tile"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(display)}</dd></div>`;
+}
 
 export async function renderStudentDashboard(container) {
   setPageTitle('My records', 'Your profile and academic standing');
@@ -19,8 +29,6 @@ export async function renderStudentDashboard(container) {
       ? (grades.reduce((sum, g) => sum + Number(g.grade_value), 0) / grades.length).toFixed(2)
       : null;
 
-    const avgClass = avg ? gradeClass(avg) : '';
-
     container.innerHTML = `
       ${pageHeader(
     'My academic records',
@@ -34,8 +42,8 @@ export async function renderStudentDashboard(container) {
       <div class="print-report space-y-6" id="report-card">
         <div class="report-hero">
           <div class="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl font-bold border border-white/30">
-              ${escapeHtml(avatarInitials(profile.full_name))}
+            <div class="border border-white/30 rounded-2xl overflow-hidden shrink-0">
+              ${studentAvatar(profile, { size: 'md', className: '!border-white/30' })}
             </div>
             <div>
               <p class="text-indigo-200 text-sm font-medium uppercase tracking-wider">Student report card</p>
@@ -49,10 +57,29 @@ export async function renderStudentDashboard(container) {
           </div>
         </div>
 
+        <div class="table-wrap">
+          <div class="px-5 py-4 border-b border-slate-100">
+            <h2 class="font-semibold text-slate-900">Student profile</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Personal and contact information on file</p>
+          </div>
+          <div class="p-5">
+            <div class="info-grid">
+              ${profileTile('Student ID', profile.student_number)}
+              ${profileTile('Email', user?.email || profile.user?.email)}
+              ${profileTile('Date of birth', formatDate(profile.date_of_birth))}
+              ${profileTile('Gender', profile.gender)}
+              ${profileTile('Religion', profile.religion)}
+              ${profileTile('Nationality', profile.nationality)}
+              ${profileTile('Place of birth', profile.place_of_birth)}
+              ${profileTile('Blood type', profile.blood_type)}
+              ${profileTile('Contact number', profile.contact_number)}
+              ${profileTile('Enrollment', profile.enrollment_status)}
+              <div class="info-tile sm:col-span-2"><dt>Home address</dt><dd>${escapeHtml(profile.address || '—')}</dd></div>
+            </div>
+          </div>
+        </div>
+
         <div class="info-grid">
-          <div class="info-tile"><dt>Student ID</dt><dd>${escapeHtml(profile.student_number)}</dd></div>
-          <div class="info-tile"><dt>Email</dt><dd class="truncate">${escapeHtml(user?.email || profile.user?.email || '')}</dd></div>
-          <div class="info-tile"><dt>Enrollment</dt><dd class="capitalize">${escapeHtml(profile.enrollment_status)}</dd></div>
           <div class="info-tile"><dt>Subjects graded</dt><dd>${grades.length}</dd></div>
         </div>
 

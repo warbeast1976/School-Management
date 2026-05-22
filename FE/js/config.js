@@ -6,3 +6,5 @@ export const API_BASE_URL = 'https://school.test/api';
 
 export const TOKEN_KEY = 'ar_portal_token';
 export const USER_KEY = 'ar_portal_user';
+export const REMEMBER_KEY = 'ar_portal_remember';
+export const REMEMBERED_EMAIL_KEY = 'ar_portal_email';

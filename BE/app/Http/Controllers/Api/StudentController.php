@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Students\StoreStudentRequest;
+use App\Http\Requests\Students\UpdateMyStudentProfileRequest;
 use App\Http\Requests\Students\UpdateStudentRequest;
 use App\Http\Resources\StudentProfileResource;
 use App\Http\Responses\ApiResponse;
@@ -60,10 +61,7 @@ class StudentController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $profile = $request->user()
-            ->studentProfile()
-            ->with(['user', 'gradeRecords.subject'])
-            ->first();
+        $profile = $this->resolveOwnProfile($request);
 
         if ($profile === null) {
             return ApiResponse::error('Student profile not found.', null, 404);
@@ -72,6 +70,26 @@ class StudentController extends Controller
         return ApiResponse::success(
             StudentProfileResource::make($profile),
             'Your profile was retrieved.'
+        );
+    }
+
+    public function updateMe(UpdateMyStudentProfileRequest $request): JsonResponse
+    {
+        $profile = $this->resolveOwnProfile($request);
+
+        if ($profile === null) {
+            return ApiResponse::error('Student profile not found.', null, 404);
+        }
+
+        $student = $this->studentService->updateOwnProfile(
+            $profile,
+            $request->safe()->except(['photo']),
+            $request->file('photo')
+        );
+
+        return ApiResponse::success(
+            StudentProfileResource::make($student),
+            'Your profile was updated successfully.'
         );
     }
 
@@ -91,7 +109,10 @@ class StudentController extends Controller
 
     public function store(StoreStudentRequest $request): JsonResponse
     {
-        $student = $this->studentService->create($request->validated());
+        $student = $this->studentService->create(
+            $request->safe()->except(['photo']),
+            $request->file('photo')
+        );
 
         return ApiResponse::success(
             StudentProfileResource::make($student),
@@ -102,7 +123,11 @@ class StudentController extends Controller
 
     public function update(UpdateStudentRequest $request, StudentProfile $studentProfile): JsonResponse
     {
-        $student = $this->studentService->update($studentProfile, $request->validated());
+        $student = $this->studentService->update(
+            $studentProfile,
+            $request->safe()->except(['photo']),
+            $request->file('photo')
+        );
 
         return ApiResponse::success(
             StudentProfileResource::make($student),
@@ -115,6 +140,14 @@ class StudentController extends Controller
         $this->studentService->delete($studentProfile);
 
         return ApiResponse::success(null, 'Student deleted successfully.');
+    }
+
+    private function resolveOwnProfile(Request $request): ?StudentProfile
+    {
+        return $request->user()
+            ->studentProfile()
+            ->with(['user', 'gradeRecords.subject'])
+            ->first();
     }
 
     private function canAccessStudent(?User $user, StudentProfile $studentProfile): bool

@@ -1,9 +1,8 @@
 import { apiRequest, ApiError } from '../api.js';
-import { icons } from '../icons.js';
 import {
   setPageTitle, escapeHtml, loadingHtml, toast, openModal, closeModal,
   btnPrimary, btnSecondary, formatErrors, pageHeader,
-  tableActions, formField, modalShell, emptyState, errorAlert,
+  formField, modalShell, emptyState, errorAlert,
   paginationBar, bindPagination, confirmDialog, inputCls
 } from '../ui.js';
 
@@ -102,9 +101,7 @@ function row(e) {
     </td>
     <td><span class="badge ${statusClass} capitalize">${e.status}</span></td>
     <td class="no-print text-right">
-      <button type="button" class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50" data-delete="${e.id}" title="Remove">
-        ${icons.trash}
-      </button>
+      <button type="button" data-delete="${e.id}" class="btn btn-danger-ghost">Delete</button>
     </td>
   </tr>`;
 }
@@ -116,7 +113,8 @@ function bindEvents(container) {
     btn.addEventListener('click', async () => {
       const enrollment = enrollmentsCache.find((e) => e.id === Number(btn.dataset.delete));
       if (!enrollment) return;
-      const studentName = enrollment.studentProfile ? enrollment.studentProfile.first_name : 'Student';
+      const student = enrollment.student_profile || enrollment.studentProfile;
+      const studentName = student ? student.first_name : 'Student';
       const subjectCode = enrollment.subject ? enrollment.subject.code : 'Subject';
       
       const ok = await confirmDialog({
@@ -183,9 +181,9 @@ async function showAssignForm() {
         <div class="grid grid-cols-2 gap-4">
           ${formField('School Year', 'school_year', { value: '2026-2027', required: true })}
           ${formField('Semester', 'semester', { type: 'select', required: true, options: [
-            { value: '1st Semester', label: '1st Semester', selected: true },
-            { value: '2nd Semester', label: '2nd Semester' },
-            { value: 'Summer', label: 'Summer' }
+            { value: '1st', label: '1st Semester', selected: true },
+            { value: '2nd', label: '2nd Semester' },
+            { value: 'summer', label: 'Summer' }
           ]})}
         </div>
       </div>

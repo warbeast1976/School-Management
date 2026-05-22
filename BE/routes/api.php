@@ -18,6 +18,8 @@ Route::get('/health', function () {
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
@@ -33,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/subjects', [SubjectController::class, 'store']);
         Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
         Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy']);
+        Route::post('/subjects/bulk-delete', [SubjectController::class, 'bulkDestroy']);
         
         Route::get('/dashboard', [DashboardController::class, 'admin']);
         Route::get('/export/students', [ExportController::class, 'students']);
@@ -41,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/students/me', [StudentController::class, 'me'])
         ->middleware('role:student');
+    Route::match(['put', 'post'], '/students/me/profile', [StudentController::class, 'updateMe'])
+        ->middleware('role:student');
 
     Route::get('/students', [StudentController::class, 'index'])
         ->middleware('role:admin');
@@ -48,7 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:admin');
     Route::get('/students/{studentProfile}', [StudentController::class, 'show'])
         ->middleware('role:admin,student');
-    Route::put('/students/{studentProfile}', [StudentController::class, 'update'])
+    Route::match(['put', 'post'], '/students/{studentProfile}', [StudentController::class, 'update'])
         ->middleware('role:admin');
     Route::delete('/students/{studentProfile}', [StudentController::class, 'destroy'])
         ->middleware('role:admin');

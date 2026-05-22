@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Subjects\BulkDeleteSubjectsRequest;
 use App\Http\Resources\SubjectResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Subject;
@@ -19,10 +20,9 @@ class SubjectController extends Controller
             $query->where('is_active', true);
         }
 
-        // Apply pagination for admin view
-        if ($request->has('page')) {
-            $perPage = $request->integer('per_page', 15);
-            $paginator = $query->paginate($perPage);
+        if ($request->has('page') || $request->user()->isAdmin()) {
+            $perPage = min($request->integer('per_page', 15), 100);
+            $paginator = $query->paginate($perPage)->withQueryString();
 
             return ApiResponse::success([
                 'items' => SubjectResource::collection($paginator->items()),
@@ -87,5 +87,36 @@ class SubjectController extends Controller
         $subject->delete();
 
         return ApiResponse::success(null, 'Subject deleted successfully.');
+    }
+
+    public function bulkDestroy(BulkDeleteSubjectsRequest $request): JsonResponse
+    {
+        $ids = $request->validated('ids');
+        $deleted = [];
+        $failed = [];
+
+        foreach (Subject::query()->whereIn('id', $ids)->get() as $subject) {
+            if ($subject->gradeRecords()->exists()) {
+                $failed[] = [
+                    'id' => $subject->id,
+                    'code' => $subject->code,
+                    'message' => 'Cannot delete subject with existing grade records.',
+                ];
+
+                continue;
+            }
+
+            $subject->delete();
+            $deleted[] = $subject->id;
+        }
+
+        $message = count($deleted) > 0
+            ? count($deleted).' subject(s) deleted.'
+            : 'No subjects were deleted.';
+
+        return ApiResponse::success([
+            'deleted' => $deleted,
+            'failed' => $failed,
+        ], $message);
     }
 }

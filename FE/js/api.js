@@ -1,4 +1,5 @@
-import { API_BASE_URL, TOKEN_KEY, USER_KEY } from './config.js';
+import { API_BASE_URL } from './config.js';
+import { getToken, clearSession } from './session.js';
 
 export class ApiError extends Error {
   constructor(message, status, errors = null) {
@@ -9,7 +10,7 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest(path, options = {}) {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = getToken();
   const headers = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -25,17 +26,70 @@ export async function apiRequest(path, options = {}) {
     headers,
   });
 
+  const raw = await response.text();
   let body;
-  try {
-    body = await response.json();
-  } catch {
-    throw new ApiError('Invalid server response.', response.status);
+  if (raw) {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      throw new ApiError('Invalid server response.', response.status);
+    }
+  } else if (response.ok) {
+    body = { success: true, data: null, message: 'OK', errors: null };
+  } else {
+    throw new ApiError('Request failed.', response.status);
   }
 
   if (!response.ok || body.success === false) {
     if (response.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      clearSession();
+      window.location.hash = '#/login';
+    }
+    throw new ApiError(
+      body.message || 'Request failed.',
+      response.status,
+      body.errors
+    );
+  }
+
+  return body;
+}
+
+/** Multipart form requests (e.g. student photo upload). Do not set Content-Type. */
+export async function apiFormRequest(path, formData, options = {}) {
+  const token = getToken();
+  const headers = {
+    Accept: 'application/json',
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+    body: formData,
+  });
+
+  const raw = await response.text();
+  let body;
+  if (raw) {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      throw new ApiError('Invalid server response.', response.status);
+    }
+  } else if (response.ok) {
+    body = { success: true, data: null, message: 'OK', errors: null };
+  } else {
+    throw new ApiError('Request failed.', response.status);
+  }
+
+  if (!response.ok || body.success === false) {
+    if (response.status === 401) {
+      clearSession();
       window.location.hash = '#/login';
     }
     throw new ApiError(
@@ -50,7 +104,7 @@ export async function apiRequest(path, options = {}) {
 
 /** Download CSV/binary exports (admin reports). */
 export async function apiDownload(path, filename) {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = getToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       Accept: 'text/csv',
@@ -59,8 +113,7 @@ export async function apiDownload(path, filename) {
   });
 
   if (response.status === 401) {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    clearSession();
     window.location.hash = '#/login';
     throw new ApiError('Session expired. Please sign in again.', 401);
   }

@@ -1,28 +1,18 @@
-import { TOKEN_KEY, USER_KEY } from './config.js';
 import { apiRequest } from './api.js';
+import {
+  getToken,
+  getStoredUser,
+  setSession,
+  clearSession,
+  updateStoredUser,
+  getRememberedEmail,
+  isRememberEnabled,
+} from './session.js';
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
+export { getToken, clearSession, getRememberedEmail, isRememberEnabled };
 
 export function getUser() {
-  const raw = localStorage.getItem(USER_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-export function setSession(token, user) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-export function clearSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  return getStoredUser();
 }
 
 export function isAdmin() {
@@ -33,12 +23,12 @@ export function isStudent() {
   return getUser()?.role === 'student';
 }
 
-export async function login(email, password) {
+export async function login(email, password, { remember = false } = {}) {
   const res = await apiRequest('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password, device_name: 'web-portal' }),
   });
-  setSession(res.data.token, res.data.user);
+  setSession(res.data.token, res.data.user, { remember });
   return res.data.user;
 }
 
@@ -55,6 +45,20 @@ export async function logout() {
 export async function refreshUser() {
   const res = await apiRequest('/auth/me');
   const user = res.data.user;
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  updateStoredUser(user);
   return user;
+}
+
+export async function forgotPassword(email) {
+  return apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword({ email, token, password, password_confirmation }) {
+  return apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, token, password, password_confirmation }),
+  });
 }
